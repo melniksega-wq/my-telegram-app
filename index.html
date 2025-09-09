@@ -19,6 +19,7 @@
             transform: translate(-50%, -50%);
             font-size: 18px;
             color: #333;
+            z-index: 1000;
         }
         iframe {
             width: 100%;
@@ -29,8 +30,22 @@
             position: fixed;
             top: 15px;
             right: 15px;
-            z-index: 10000;
+            z-index: 10001;
             background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 10001;
+            background: #007bff;
             color: white;
             border: none;
             border-radius: 50%;
@@ -45,45 +60,115 @@
 <body>
     <div id="loader">Загрузка приложения...</div>
     <button id="close-btn" onclick="closeApp()">✕</button>
-    <iframe src="https://terapia-bez-terapii.ru/navi" id="tilda-iframe" style="display:none"></iframe>
+    <button id="back-btn" onclick="goBack()">←</button>
+    
+    <iframe 
+        src="https://ВАШ-САЙТ.tilda.ws/ВАША-СТРАНИЦА" 
+        id="tilda-iframe" 
+        style="display:none"
+        allow="fullscreen"
+        onload="onIframeLoad()"
+    ></iframe>
 
     <script>
         let tg = Telegram.WebApp;
+        let currentIframeUrl = "https://terapia-bez-terapii.ru/navi";
         
         function initApp() {
-            // Скрываем лоадер и показываем iframe
+            // Показываем iframe и кнопки
             document.getElementById('loader').style.display = 'none';
             document.getElementById('tilda-iframe').style.display = 'block';
             document.getElementById('close-btn').style.display = 'block';
             
-            // Раскрываем на весь экран
+            // Настройки Telegram WebApp
             tg.expand();
             
-            // ОТКЛЮЧАЕМ СВАЙП ВНИЗ
             if (typeof tg.disableVerticalSwipes === 'function') {
                 tg.disableVerticalSwipes();
             }
             
-            // Включаем подтверждение закрытия
             if (typeof tg.enableClosingConfirmation === 'function') {
                 tg.enableClosingConfirmation();
             }
             
-            console.log("Приложение инициализировано");
+            // Следим за навигацией внутри iframe
+            startMonitoringIframe();
         }
         
         function closeApp() {
             tg.close();
         }
         
-        // Ждем загрузки Telegram WebApp
-        if (typeof Telegram !== 'undefined') {
-            tg.ready();
-            tg.onEvent('viewportChanged', initApp);
-            setTimeout(initApp, 1000);
-        } else {
-            document.getElementById('loader').textContent = 'Ошибка: Откройте в Telegram';
+        function goBack() {
+            const iframe = document.getElementById('tilda-iframe');
+            try {
+                iframe.contentWindow.history.back();
+            } catch (e) {
+                console.log('Cannot go back');
+            }
         }
+        
+        function onIframeLoad() {
+            // Обновляем текущий URL при загрузке iframe
+            try {
+                const iframe = document.getElementById('tilda-iframe');
+                currentIframeUrl = iframe.contentWindow.location.href;
+                
+                // Показываем/скрываем кнопку "Назад" в зависимости от истории
+                updateBackButton();
+                
+            } catch (e) {
+                // Игнорируем ошибки cross-origin
+            }
+        }
+        
+        function startMonitoringIframe() {
+            // Периодически проверяем URL iframe для многостраничных сайтов
+            setInterval(() => {
+                try {
+                    const iframe = document.getElementById('tilda-iframe');
+                    const iframeUrl = iframe.contentWindow.location.href;
+                    
+                    if (iframeUrl !== currentIframeUrl) {
+                        currentIframeUrl = iframeUrl;
+                        updateBackButton();
+                    }
+                } catch (e) {
+                    // Ошибка доступа к cross-origin iframe - это нормально
+                }
+            }, 1000);
+        }
+        
+        function updateBackButton() {
+            const iframe = document.getElementById('tilda-iframe');
+            try {
+                // Пытаемся определить, есть ли история для кнопки "Назад"
+                const hasHistory = iframe.contentWindow.history.length > 1;
+                document.getElementById('back-btn').style.display = hasHistory ? 'block' : 'none';
+            } catch (e) {
+                document.getElementById('back-btn').style.display = 'none';
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Telegram !== 'undefined') {
+                tg.ready();
+                setTimeout(initApp, 1500); // Даем время на загрузку
+            } else {
+                // Если открыто не в Telegram, показываем iframe сразу
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('tilda-iframe').style.display = 'block';
+                document.getElementById('close-btn').style.display = 'block';
+            }
+        });
+        
+        // Обработчик для кнопки "Назад" в самом iframe (если Tilda поддерживает)
+        window.addEventListener('message', function(event) {
+            if (event.data === 'goBack') {
+                goBack();
+            }
+        });
     </script>
 </body>
 </html>
