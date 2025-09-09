@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #333;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #close-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 10000;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">Загрузка приложения...</div>
+    <button id="close-btn" onclick="closeApp()">✕</button>
+    <iframe src="https://terapia-bez-terapii.ru/navi" id="tilda-iframe" style="display:none"></iframe>
+
+    <script>
+        let tg = Telegram.WebApp;
+        
+        function initApp() {
+            // Скрываем лоадер и показываем iframe
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('tilda-iframe').style.display = 'block';
+            document.getElementById('close-btn').style.display = 'block';
+            
+            // Раскрываем на весь экран
+            tg.expand();
+            
+            // ОТКЛЮЧАЕМ СВАЙП ВНИЗ
+            if (typeof tg.disableVerticalSwipes === 'function') {
+                tg.disableVerticalSwipes();
+            }
+            
+            // Включаем подтверждение закрытия
+            if (typeof tg.enableClosingConfirmation === 'function') {
+                tg.enableClosingConfirmation();
+            }
+            
+            console.log("Приложение инициализировано");
+        }
+        
+        function closeApp() {
+            tg.close();
+        }
+        
+        // Ждем загрузки Telegram WebApp
+        if (typeof Telegram !== 'undefined') {
+            tg.ready();
+            tg.onEvent('viewportChanged', initApp);
+            setTimeout(initApp, 1000);
+        } else {
+            document.getElementById('loader').textContent = 'Ошибка: Откройте в Telegram';
+        }
+    </script>
+</body>
+</html>
